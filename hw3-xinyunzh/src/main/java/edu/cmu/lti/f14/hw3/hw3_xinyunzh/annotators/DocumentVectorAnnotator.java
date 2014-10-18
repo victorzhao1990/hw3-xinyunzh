@@ -16,6 +16,7 @@ import edu.cmu.lti.f14.hw3.hw3_xinyunzh.typesystems.Document;
 import edu.cmu.lti.f14.hw3.hw3_xinyunzh.typesystems.Token;
 import edu.cmu.lti.f14.hw3.hw3_xinyunzh.utils.Utils;
 
+
 public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 
 	@Override
@@ -49,7 +50,7 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 	}
 
 	/**
-	 * 
+	 * This function will create a Term Frequency Vector according to the time that one token occurs in one sentence.
 	 * @param jcas
 	 * @param doc
 	 */
@@ -84,6 +85,9 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 			tokenListUnconv.add(token);
 		}
 		FSList theTokenList = Utils.fromCollectionToFSList(jcas, tokenListUnconv);
+		// System.out.println(theTokenList);
+		
+		doc.setTokenList(theTokenList);
 		theTokenList.addToIndexes(jcas);
 	}
 
