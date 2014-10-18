@@ -52,11 +52,14 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 
 	/** Word Freq for each group of query and answer and rel **/
 	HashMap<Integer, HashMap<String, Integer>> wordFreqSentRel;
-	
+
 	/** Global Sentence Content Storage **/
 	ArrayList<String> globSentCont;
-	
-	/** The array that used to store rank information for each answer in the query **/
+
+	/**
+	 * The array that used to store rank information for each answer in the
+	 * query
+	 **/
 	ArrayList<Integer> rank = new ArrayList<Integer>();
 
 	public void initialize() throws ResourceInitializationException {
@@ -68,7 +71,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 		listHsDict = new HashMap<Integer, HashSet<String>>();
 
 		wordFreqSentGlob = new HashMap<Integer, ArrayList<HashMap<Integer, HashMap<String, Integer>>>>();
-		
+
 		globSentCont = new ArrayList<String>();
 
 	}
@@ -95,7 +98,6 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 			// Make sure that your previous annotators have populated this in
 			// CAS
 			FSList fsTokenList = doc.getTokenList();
-			// System.out.println(fsTokenList);
 			ArrayList<Token> tokenList = Utils.fromFSListToCollection(
 					fsTokenList, Token.class);
 
@@ -122,7 +124,6 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 						storeWordFreq(tokenList));
 
 				wordFreqSentGroup.add(wordFreqSentRel);
-				// System.out.println(wordFreqSentGroup);
 
 				listHsDict.put(doc.getQueryID(), hsDict);
 
@@ -133,39 +134,20 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 					hsDict.add(token.getText());
 					wordFreqSingSent.put(token.getText(), token.getFrequency());
 				}
-
-				// System.out.println(doc.getQueryID());
 			} else {
 				hsDict = listHsDict.get(doc.getQueryID());
-				// Iterator<Token> tokIter = tokenList.iterator();
-				// HashMap<String, Integer> wordFreqSingSent = new
-				// HashMap<String, Integer>();
-				// while (tokIter.hasNext()) {
-				// Token token = tokIter.next();
-				// hsDict.add(token.getText());
-				// wordFreqSingSent.put(token.getText(), token.getFrequency());
-				// }
-				// System.out.println(wordFreqSingSent);
 				wordFreqSentRel = new HashMap<Integer, HashMap<String, Integer>>();
 				wordFreqSentRel.put(doc.getRelevanceValue(),
 						storeWordFreq(tokenList));
 				wordFreqSentGroup.add(wordFreqSentRel);
-				
+
 				// Add 1answer into arraylist to store
 				if (doc.getRelevanceValue() == 1) {
 					globSentCont.add(doc.getText());
 				}
-				// wordFreqSentGroup.add(wordFreqSingSent);
 
 			}
 			lastQid = doc.getQueryID();
-			// Test for print wordFreqSentGlob
-			// Iterator<Entry<Integer, ArrayList<HashMap<String, Integer>>>>
-			// globItr =
-			// wordFreqSentGlob.entrySet().iterator();
-			// while (globItr.hasNext()) {
-			// System.out.println(globItr.next());
-			// }
 		}
 		wordFreqSentGlob.put(lastQid, wordFreqSentGroup);
 
@@ -193,46 +175,33 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 		// Test of Print out the result
 		Set<Entry<Integer, ArrayList<HashMap<Integer, HashMap<String, Integer>>>>> entrywfGlob = wordFreqSentGlob
 				.entrySet();
+
 		Iterator<Entry<Integer, ArrayList<HashMap<Integer, HashMap<String, Integer>>>>> entryItr = entrywfGlob
 				.iterator();
-		while (entryItr.hasNext()) {
-			Entry<Integer, ArrayList<HashMap<Integer, HashMap<String, Integer>>>> entry = entryItr
-					.next();
-			System.out.println(entry.getKey() + "***********"
-					+ entry.getValue());
-		}
-		System.out.println("***********");
 
 		// Display the sentence information
 
 		// TODO :: compute the cosine similarity measure
-		/** HashMap<Qid, cosineSimGroup(ArrayList<HashMap<rel, Double>>)> cosineSimAll **/
+		/**
+		 * HashMap<Qid, cosineSimGroup(ArrayList<HashMap<rel, Double>>)>
+		 * cosineSimAll
+		 **/
 		HashMap<Integer, ArrayList<HashMap<Integer, Double>>> cosineSimAll = new HashMap<Integer, ArrayList<HashMap<Integer, Double>>>();
-		
-		/** ArrayList<HashMap<rel, Double >>**/
-		ArrayList<HashMap<Integer, Double >> cosineSimGroup;
 
-		// Set<Entry<Integer, ArrayList<HashMap<Integer, HashMap<String,
-		// Integer>>>>> entrywfGlob = wordFreqSentGlob.entrySet();
-		entrywfGlob = wordFreqSentGlob.entrySet();
-		// Iterator<Entry<Integer, ArrayList<HashMap<Integer, HashMap<String,
-		// Integer>>>>> entryItr = entrywfGlob.iterator();
-		entryItr = entrywfGlob.iterator();
+		/** ArrayList<HashMap<rel, Double >> **/
+		ArrayList<HashMap<Integer, Double>> cosineSimGroup;
 
 		while (entryItr.hasNext()) {
-			// System.out.println("***********");
 			Entry<Integer, ArrayList<HashMap<Integer, HashMap<String, Integer>>>> entry = entryItr
 					.next();
 			int qid = entry.getKey();
 			ArrayList<HashMap<Integer, HashMap<String, Integer>>> alItem = entry
 					.getValue();
-			// new ArrayList<HashMap<Integer, HashMap<String, Integer>>>();
 			Map<String, Integer> queryVector = null;
 			Map<String, Integer> docVector;
 			cosineSimGroup = new ArrayList<HashMap<Integer, Double>>();
 			Double currSim;
 			for (HashMap<Integer, HashMap<String, Integer>> hashMap : alItem) {
-				// System.out.println("***********");
 				Set<Entry<Integer, HashMap<String, Integer>>> entryMap = hashMap
 						.entrySet();
 				for (Entry<Integer, HashMap<String, Integer>> entryItem : entryMap) {
@@ -243,7 +212,6 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 						if (queryVector != null) {
 							currSim = computeCosineSimilarity(queryVector,
 									docVector);
-							System.out.println(qid + " " + currSim);
 							HashMap<Integer, Double> currSimRel = new HashMap<Integer, Double>();
 							currSimRel.put(entryItem.getKey(), currSim);
 							cosineSimGroup.add(currSimRel);
@@ -252,66 +220,56 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 				}
 			}
 			cosineSimAll.put(qid, cosineSimGroup);
-			// System.out.println(entry.getKey() + "***********" +
-			// entry.getValue());
 		}
-		
+
 		// TODO :: compute the rank of retrieved sentences
-		
+
 		// Also write this information into the file, include the sentence.
-		/** The array that used to store rank information for each answer in the query **/
+		/**
+		 * The array that used to store rank information for each answer in the
+		 * query
+		 **/
 		/** Declared outside of this scope **/
-		
+
 		/** The corresponding cosValue array **/
 		ArrayList<Double> cosineListOf1 = new ArrayList<Double>();
 		/** The corresponding sentence content **/
-		// ArrayList<String> senCont = new ArrayList<String>();
-		Set<Entry<Integer, ArrayList<HashMap<Integer, Double>>>> EntryCSA = cosineSimAll.entrySet();
+		Set<Entry<Integer, ArrayList<HashMap<Integer, Double>>>> EntryCSA = cosineSimAll
+				.entrySet();
 		for (Entry<Integer, ArrayList<HashMap<Integer, Double>>> group : EntryCSA) {
-			// int qid = group.getKey();
 			ArrayList<HashMap<Integer, Double>> answerGroup = group.getValue();
 			ArrayList<Double> simList = new ArrayList<Double>();
 			double valueOf1 = 0.0;
-			for(HashMap<Integer, Double> answer : answerGroup) {
-				Entry<Integer, Double> answerEntry = answer.entrySet().iterator().next();
+			for (HashMap<Integer, Double> answer : answerGroup) {
+				Entry<Integer, Double> answerEntry = answer.entrySet()
+						.iterator().next();
 				simList.add(answerEntry.getValue());
 				if (answerEntry.getKey() == 1) {
 					valueOf1 = answerEntry.getValue();
 					cosineListOf1.add(answerEntry.getValue());
 				}
 			}
-			// System.out.println(simList);
 			Collections.sort(simList);
-			System.out.println(simList);
 			rank.add(simList.size() - simList.indexOf(valueOf1));
-//			ArrayList<Entry<Integer, Double>> answerGroupEntry = new ArrayList<Entry<Integer, Double>>();
-//			for (HashMap<Integer, Double> answer : answerGroup) {
-//				answerGroupEntry.add(answer.entrySet().iterator().next());
-//				
-//			}
-			
 		}
-		System.out.println(cosineListOf1.size() + " " + rank.size() + " " + globSentCont.size());
 		for (int i = 0; i < rank.size(); i++) {
-			System.out.println("consine" + cosineListOf1.get(i) + " " + "rank=" + rank.get(i) + " " + "rel=1" + " " + globSentCont.get(i));
+			System.out.println("consine" + cosineListOf1.get(i) + " " + "rank="
+					+ rank.get(i) + " " + "rel=1" + " " + globSentCont.get(i));
 		}
 		// TODO :: compute the metric:: mean reciprocal rank
 		double metric_mrr = compute_mrr();
 		System.out.println(" (MRR) Mean Reciprocal Rank ::" + metric_mrr);
-
-		// Test for print out the dictionary
-		// Set<Entry<Integer, HashSet<String>>> entryDic =
-		// listHsDict.entrySet();
-		// Iterator<Entry<Integer, HashSet<String>>> dicIterator =
-		// entryDic.iterator();
-		// while (dicIterator.hasNext()) {
-		// System.out.println(dicIterator.next());
-		// }
 	}
 
-	// private <Integer, Map<String, Integer>>
-
 	/**
+	 * This method is used to calculate the cosine_similarity for two input
+	 * vector, which are Query Vector and Doc Vector, respectively.
+	 * 
+	 * @param queryVector
+	 *            Query Vector
+	 * 
+	 * @param docVector
+	 *            Document Vector
 	 * 
 	 * @return cosine_similarity
 	 */
@@ -323,11 +281,6 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 		double qVLen, dVLen = 0;
 		qVLen = computeVectorLength(queryVector);
 		dVLen = computeVectorLength(docVector);
-
-		// Set<Entry<Integer, HashSet<String>>> entryListHsDict =
-		// listHsDict.entrySet();
-		// System.out.println(queryVector.entrySet());
-		// System.out.println(docVector.entrySet());
 		Set<Entry<String, Integer>> entrySetQV = queryVector.entrySet();
 		for (Entry<String, Integer> entryQV : entrySetQV) {
 			String commonString = entryQV.getKey();
@@ -338,10 +291,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 		}
 		cosine_similarity = cosine_similarity / (qVLen * dVLen);
 
-		// Iterator<Entry<String, Integer>> qVIter =
-		// queryVector.entrySet().iterator();
-
-		return cosine_similarity;
+		return (double) Math.round(cosine_similarity * 10000) / 10000;
 	}
 
 	private double computeVectorLength(Map<String, Integer> vector) {
@@ -354,6 +304,8 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 	}
 
 	/**
+	 * This method use a global variable that stores all of the rank information
+	 * to calculate the mrr.
 	 * 
 	 * @return mrr
 	 */
@@ -361,8 +313,8 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 		double metric_mrr = 0.0;
 
 		// TODO :: compute Mean Reciprocal Rank (MRR) of the text collection
-		for (int r : rank){
-			metric_mrr += 1 / (double)r; 
+		for (int r : rank) {
+			metric_mrr += 1 / (double) r;
 		}
 		metric_mrr = metric_mrr / rank.size();
 		return metric_mrr;
