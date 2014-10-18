@@ -1,6 +1,10 @@
 package edu.cmu.lti.f14.hw3.hw3_xinyunzh.casconsumers;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,7 +34,16 @@ import edu.cmu.lti.f14.hw3.hw3_xinyunzh.utils.Utils;
 import edu.cmu.lti.f14.hw3.hw3_xinyunzh.typesystems.*;
 
 public class RetrievalEvaluator extends CasConsumer_ImplBase {
-
+	
+	/** The output path for report.txt **/
+	private File outputPath;
+	
+	/** File Writer variable **/
+	private FileWriter outFW = null;
+	
+	/** BufferWrite variable **/
+	private BufferedWriter outBW = null;
+	
 	/** query id number **/
 	public ArrayList<Integer> qIdList;
 
@@ -73,6 +86,17 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 		wordFreqSentGlob = new HashMap<Integer, ArrayList<HashMap<Integer, HashMap<String, Integer>>>>();
 
 		globSentCont = new ArrayList<String>();
+		
+		outputPath = new File("report.txt");
+		
+		try {
+			outFW = new FileWriter(outputPath, true);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		outBW = new BufferedWriter(outFW);
 
 	}
 
@@ -252,13 +276,23 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 			Collections.sort(simList);
 			rank.add(simList.size() - simList.indexOf(valueOf1));
 		}
+		// Make the 4 digit format
+		DecimalFormat df = new DecimalFormat("0.0000");
 		for (int i = 0; i < rank.size(); i++) {
-			System.out.println("consine" + cosineListOf1.get(i) + " " + "rank="
-					+ rank.get(i) + " " + "rel=1" + " " + globSentCont.get(i));
+			String linePrint = new String("consine="
+					+ df.format(cosineListOf1.get(i)) + "\t" + "rank="
+					+ rank.get(i) + "\t" + "qid=" + (i + 1)  + "\t" + "rel=1" + "\t"
+					+ globSentCont.get(i));
+			System.out.println(linePrint);
+			outBW.write(linePrint + "\n");
 		}
+		
 		// TODO :: compute the metric:: mean reciprocal rank
 		double metric_mrr = compute_mrr();
-		System.out.println(" (MRR) Mean Reciprocal Rank ::" + metric_mrr);
+		System.out.println(" (MRR) Mean Reciprocal Rank ::"
+				+ df.format(metric_mrr));
+		outBW.write("MRR=" + df.format(metric_mrr));
+		outBW.close();
 	}
 
 	/**
