@@ -1,5 +1,6 @@
 package edu.cmu.lti.f14.hw3.hw3_xinyunzh.annotators;
 
+import java.io.StringReader;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -14,10 +15,20 @@ import org.apache.uima.jcas.tcas.Annotation;
 
 import edu.cmu.lti.f14.hw3.hw3_xinyunzh.typesystems.Document;
 import edu.cmu.lti.f14.hw3.hw3_xinyunzh.typesystems.Token;
+import edu.cmu.lti.f14.hw3.hw3_xinyunzh.utils.StanfordLemmatizer;
 import edu.cmu.lti.f14.hw3.hw3_xinyunzh.utils.Utils;
-
+import edu.stanford.nlp.ling.Word;
+import edu.stanford.nlp.process.Tokenizer;
+import edu.stanford.nlp.process.TokenizerFactory;
+import edu.stanford.nlp.process.PTBTokenizer.PTBTokenizerFactory;
 
 public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
+
+	private static int NLPTOK = 1;
+	private static int STALEM = 2;
+	private static int WHISPA = 0;
+	
+	
 
 	@Override
 	public void process(JCas jcas) throws AnalysisEngineProcessException {
@@ -26,7 +37,6 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 		if (iter.isValid()) {
 			iter.moveToNext();
 			Document doc = (Document) iter.get();
-			// System.out.println(doc.getQueryID() + " " + doc.getRelevanceValue() + " " + doc.getText());
 			createTermFreqVector(jcas, doc);
 		}
 
@@ -48,9 +58,54 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 			res.add(s);
 		return res;
 	}
+	
+	/** 
+	 * This method will tokenize by using one of three different tokenizer (Stanford CoreNLP, 
+	 * Stanford Lemma, Naive White Spaced) according to parameter 'option' 
+	 * 
+	 * @param docText The untokenized text of document.
+	 * 
+	 * @param options The option to specify the target tokenizer
+	 * 
+	 * @return The output list of tokens.
+	 */
+	private List<String> tokenProcess(String docText, int options) {
+		List<String> tokenStringList = null;
+		switch (options) {
+		case 0: {
+			tokenStringList = tokenize0(docText);
+		}
+			break;
+		case 1: {
+			TokenizerFactory<Word> factory = PTBTokenizerFactory
+					.newTokenizerFactory();
+
+			Tokenizer<Word> tokenizer = factory.getTokenizer(new StringReader(
+					docText));
+
+			List<Word> tokenWordList = tokenizer.tokenize();
+			Iterator<Word> tkIter = tokenWordList.iterator();
+			tokenStringList = new ArrayList<String>();
+			while (tkIter.hasNext()) {
+				tokenStringList.add(tkIter.next().word());
+			}
+		}
+		case 2: {
+			String stemTextInfo = StanfordLemmatizer.stemText(docText);
+			String [] stemTextArray = stemTextInfo.split(" ");
+			tokenStringList = new ArrayList<String>();
+			for (String stem : stemTextArray) {
+				tokenStringList.add(stem);
+			}
+		}
+		}
+		return tokenStringList;
+	}
 
 	/**
-	 * This function will create a Term Frequency Vector according to the time that one token occurs in one sentence.
+	 * This function will create a Term Frequency Vector according to the time
+	 * that one token occurs in one sentence.
+	 * 
 	 * @param jcas
 	 * @param doc
 	 */
@@ -59,14 +114,15 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 
 		String docText = doc.getText();
 
-		// TO DO: construct a vector of tokens and update the tokenList in CAS
-		// TO DO: use tokenize0 from above
-		List<String> tokenStringList = tokenize0(doc.getText());
-		
+		List<String> tokenStringList;
+
 		HashMap<String, Integer> tokHM = new HashMap<String, Integer>();
-		Iterator<String> tkIter = tokenStringList.iterator();
-		List<Token> tokenListUnconv = new LinkedList<Token>();
+		tokenStringList = tokenProcess(docText, WHISPA);
 		
+		Iterator<String> tkIter = tokenStringList.iterator();
+
+		List<Token> tokenListUnconv = new LinkedList<Token>();
+
 		while (tkIter.hasNext()) {
 			String tokenInSen = tkIter.next();
 			if (!tokHM.containsKey(tokenInSen)) {
@@ -74,7 +130,7 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 			} else {
 				tokHM.put(tokenInSen, tokHM.get(tokenInSen) + 1);
 			}
-		} 
+		}
 		Set<Entry<String, Integer>> tisEntry = tokHM.entrySet();
 		Iterator<Entry<String, Integer>> tisEnItr = tisEntry.iterator();
 		while (tisEnItr.hasNext()) {
@@ -84,9 +140,10 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 			token.setText(entry.getKey());
 			tokenListUnconv.add(token);
 		}
-		FSList theTokenList = Utils.fromCollectionToFSList(jcas, tokenListUnconv);
+		FSList theTokenList = Utils.fromCollectionToFSList(jcas,
+				tokenListUnconv);
 		// System.out.println(theTokenList);
-		
+
 		doc.setTokenList(theTokenList);
 		theTokenList.addToIndexes(jcas);
 	}

@@ -35,36 +35,31 @@ import edu.cmu.lti.f14.hw3.hw3_xinyunzh.typesystems.*;
 
 public class RetrievalEvaluator extends CasConsumer_ImplBase {
 	
+	int counter = 0;
+	
 	/** The output path for report.txt **/
 	private File outputPath;
-	
+
 	/** File Writer variable **/
 	private FileWriter outFW = null;
-	
+
 	/** BufferWrite variable **/
 	private BufferedWriter outBW = null;
-	
+
 	/** query id number **/
 	public ArrayList<Integer> qIdList;
 
 	/** query and text relevant values **/
 	public ArrayList<Integer> relList;
 
-	/** Global word dictionary **/
-	HashMap<Integer, HashSet<String>> listHsDict;
-
 	/** Global Word Frequency for each Sentence **/
-	/**
-	 * HashMap<qid, ArrayList<HashMap<Integer, HashMap<rel, HashMap<token,
-	 * freq>>>>
-	 **/
-	HashMap<Integer, ArrayList<HashMap<Integer, HashMap<String, Integer>>>> wordFreqSentGlob;
+
+	ArrayList<ArrayList<QueryDocInfo>> wordFreqSentGlob;
 
 	/** Word Freq for each group of query and answer **/
-	ArrayList<HashMap<Integer, HashMap<String, Integer>>> wordFreqSentGroup;
+	ArrayList<QueryDocInfo> groupQueryDocInfo;
 
 	/** Word Freq for each group of query and answer and rel **/
-	HashMap<Integer, HashMap<String, Integer>> wordFreqSentRel;
 
 	/** Global Sentence Content Storage **/
 	ArrayList<String> globSentCont;
@@ -75,27 +70,30 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 	 **/
 	ArrayList<Integer> rank = new ArrayList<Integer>();
 
+	/** Current Qid **/
+	int currQid;
+
 	public void initialize() throws ResourceInitializationException {
 
 		qIdList = new ArrayList<Integer>();
 
 		relList = new ArrayList<Integer>();
 
-		listHsDict = new HashMap<Integer, HashSet<String>>();
-
-		wordFreqSentGlob = new HashMap<Integer, ArrayList<HashMap<Integer, HashMap<String, Integer>>>>();
+		wordFreqSentGlob = new ArrayList<ArrayList<QueryDocInfo>>();
 
 		globSentCont = new ArrayList<String>();
-		
+
 		outputPath = new File("report.txt");
-		
+
+		currQid = 0;
+
 		try {
 			outFW = new FileWriter(outputPath, true);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		outBW = new BufferedWriter(outFW);
 
 	}
@@ -107,6 +105,8 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 	@Override
 	public void processCas(CAS aCas) throws ResourceProcessException {
 		int lastQid = 0;
+		/** Use to keep the docs of same query **/
+
 		JCas jcas;
 		try {
 			jcas = aCas.getJCas();
@@ -127,64 +127,35 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 
 			qIdList.add(doc.getQueryID());
 			relList.add(doc.getRelevanceValue());
+			// System.out.println(qIdList);
 
 			// Do something useful here
 
-			HashSet<String> hsDict;
-
+			// The current doc is a query.
 			if (doc.getRelevanceValue() == 99) {
-				if (doc.getQueryID() == 1) {
-					wordFreqSentGlob.put(1, wordFreqSentGroup);
-				} else {
-					wordFreqSentGlob.put(doc.getQueryID() - 1,
-							wordFreqSentGroup);
-				}
-				hsDict = new HashSet<String>();
-				wordFreqSentGroup = new ArrayList<HashMap<Integer, HashMap<String, Integer>>>();
-
-				wordFreqSentRel = new HashMap<Integer, HashMap<String, Integer>>();
-
-				wordFreqSentRel.put(doc.getRelevanceValue(),
-						storeWordFreq(tokenList));
-
-				wordFreqSentGroup.add(wordFreqSentRel);
-
-				listHsDict.put(doc.getQueryID(), hsDict);
-
-				Iterator<Token> tokIter = tokenList.iterator();
-				HashMap<String, Integer> wordFreqSingSent = new HashMap<String, Integer>();
-				while (tokIter.hasNext()) {
-					Token token = tokIter.next();
-					hsDict.add(token.getText());
-					wordFreqSingSent.put(token.getText(), token.getFrequency());
-				}
-			} else {
-				hsDict = listHsDict.get(doc.getQueryID());
-				wordFreqSentRel = new HashMap<Integer, HashMap<String, Integer>>();
-				wordFreqSentRel.put(doc.getRelevanceValue(),
-						storeWordFreq(tokenList));
-				wordFreqSentGroup.add(wordFreqSentRel);
-
-				// Add 1answer into arraylist to store
-				if (doc.getRelevanceValue() == 1) {
-					globSentCont.add(doc.getText());
-				}
-
+				// Since we have encounter another group of query, therefore we
+				// add the whole group into the array.
+				// if (wordFreqSentGlob.size() != 0) {
+					wordFreqSentGlob.add(groupQueryDocInfo);
+				// }
+				currQid++;
+				groupQueryDocInfo = new ArrayList<QueryDocInfo>();
 			}
-			lastQid = doc.getQueryID();
-		}
-		wordFreqSentGlob.put(lastQid, wordFreqSentGroup);
+			QueryDocInfo qDI = new QueryDocInfo();
 
-	}
-
-	private HashMap<String, Integer> storeWordFreq(ArrayList<Token> tokenList) {
-		Iterator<Token> tokItr = tokenList.iterator();
-		HashMap<String, Integer> wordFreqSentce = new HashMap<String, Integer>();
-		while (tokItr.hasNext()) {
-			Token token = tokItr.next();
-			wordFreqSentce.put(token.getText(), token.getFrequency());
+			qDI.setDocIndex(groupQueryDocInfo.size());
+			qDI.setRel(doc.getRelevanceValue());
+			qDI.setText(doc.getText());
+			qDI.setTokenFreq(tokenList);
+			qDI.setQid(currQid);
+			groupQueryDocInfo.add(qDI);
 		}
-		return wordFreqSentce;
+		// System.out.println(groupQueryDocInfo);
+		// wordFreqSentGlob.add(groupQueryDocInfo);
+//		else {
+//			wordFreqSentGlob.add(groupQueryDocInfo);
+//			wordFreqSentGlob.remove(0);
+//		}
 	}
 
 	/**
@@ -196,98 +167,66 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 			throws ResourceProcessException, IOException {
 
 		super.collectionProcessComplete(arg0);
-		// Test of Print out the result
-		Set<Entry<Integer, ArrayList<HashMap<Integer, HashMap<String, Integer>>>>> entrywfGlob = wordFreqSentGlob
-				.entrySet();
-
-		Iterator<Entry<Integer, ArrayList<HashMap<Integer, HashMap<String, Integer>>>>> entryItr = entrywfGlob
-				.iterator();
 
 		// Display the sentence information
+		wordFreqSentGlob.add(groupQueryDocInfo);
+		wordFreqSentGlob.remove(0);
 
 		// TODO :: compute the cosine similarity measure
-		/**
-		 * HashMap<Qid, cosineSimGroup(ArrayList<HashMap<rel, Double>>)>
-		 * cosineSimAll
-		 **/
-		HashMap<Integer, ArrayList<HashMap<Integer, Double>>> cosineSimAll = new HashMap<Integer, ArrayList<HashMap<Integer, Double>>>();
-
-		/** ArrayList<HashMap<rel, Double >> **/
-		ArrayList<HashMap<Integer, Double>> cosineSimGroup;
-
-		while (entryItr.hasNext()) {
-			Entry<Integer, ArrayList<HashMap<Integer, HashMap<String, Integer>>>> entry = entryItr
-					.next();
-			int qid = entry.getKey();
-			ArrayList<HashMap<Integer, HashMap<String, Integer>>> alItem = entry
-					.getValue();
+		for (ArrayList<QueryDocInfo> groupSentFreq : wordFreqSentGlob) {
 			Map<String, Integer> queryVector = null;
-			Map<String, Integer> docVector;
-			cosineSimGroup = new ArrayList<HashMap<Integer, Double>>();
-			Double currSim;
-			for (HashMap<Integer, HashMap<String, Integer>> hashMap : alItem) {
-				Set<Entry<Integer, HashMap<String, Integer>>> entryMap = hashMap
-						.entrySet();
-				for (Entry<Integer, HashMap<String, Integer>> entryItem : entryMap) {
-					if (entryItem.getKey() == 99) {
-						queryVector = entryItem.getValue();
-					} else {
-						docVector = entryItem.getValue();
-						if (queryVector != null) {
-							currSim = computeCosineSimilarity(queryVector,
-									docVector);
-							HashMap<Integer, Double> currSimRel = new HashMap<Integer, Double>();
-							currSimRel.put(entryItem.getKey(), currSim);
-							cosineSimGroup.add(currSimRel);
-						}
-					}
+			// System.out.println(groupSentFreq);
+			for (QueryDocInfo qDI : groupSentFreq) {
+				HashMap<String, Integer> docVector = null;
+				if (qDI.getRel() == 99) {
+					queryVector = qDI.getTokenFreq();
+				} else {
+					docVector = qDI.getTokenFreq();
+				}
+				if (queryVector != null && docVector != null) {
+					// System.out.println(queryVector + " " + docVector);
+					qDI.setCoSim(computeCosineSimilarity(queryVector, docVector));
+
 				}
 			}
-			cosineSimAll.put(qid, cosineSimGroup);
 		}
 
 		// TODO :: compute the rank of retrieved sentences
 
 		// Also write this information into the file, include the sentence.
-		/**
-		 * The array that used to store rank information for each answer in the
-		 * query
-		 **/
-		/** Declared outside of this scope **/
 
-		/** The corresponding cosValue array **/
-		ArrayList<Double> cosineListOf1 = new ArrayList<Double>();
 		/** The corresponding sentence content **/
-		Set<Entry<Integer, ArrayList<HashMap<Integer, Double>>>> EntryCSA = cosineSimAll
-				.entrySet();
-		for (Entry<Integer, ArrayList<HashMap<Integer, Double>>> group : EntryCSA) {
-			ArrayList<HashMap<Integer, Double>> answerGroup = group.getValue();
-			ArrayList<Double> simList = new ArrayList<Double>();
-			double valueOf1 = 0.0;
-			for (HashMap<Integer, Double> answer : answerGroup) {
-				Entry<Integer, Double> answerEntry = answer.entrySet()
-						.iterator().next();
-				simList.add(answerEntry.getValue());
-				if (answerEntry.getKey() == 1) {
-					valueOf1 = answerEntry.getValue();
-					cosineListOf1.add(answerEntry.getValue());
-				}
+		for (ArrayList<QueryDocInfo> groupSentFreq : wordFreqSentGlob) {
+			ArrayList<QueryDocInfo> tempList = new ArrayList<QueryDocInfo>(groupSentFreq);
+			tempList.remove(0);
+			Collections.sort(tempList);
+			for (QueryDocInfo qID : groupSentFreq) {
+				qID.setRank(tempList.indexOf(qID) + 1);
+				// System.out.println(groupSentFreq);
 			}
-			Collections.sort(simList);
-			rank.add(simList.size() - simList.indexOf(valueOf1));
 		}
+
 		// Make the 4 digit format
 		DecimalFormat df = new DecimalFormat("0.0000");
-		for (int i = 0; i < rank.size(); i++) {
-			String linePrint = new String("consine="
-					+ df.format(cosineListOf1.get(i)) + "\t" + "rank="
-					+ rank.get(i) + "\t" + "qid=" + (i + 1)  + "\t" + "rel=1" + "\t"
-					+ globSentCont.get(i));
-			System.out.println(linePrint);
-			outBW.write(linePrint + "\n");
+		// System.out.println(wordFreqSentGlob);
+		for (int i = 0; i < wordFreqSentGlob.size(); i++) {
+			ArrayList<QueryDocInfo> groupSentFreq = wordFreqSentGlob.get(i);
+			for (QueryDocInfo qID : groupSentFreq) {
+				if (qID.getRel() == 1) {
+					String linePrint = new String("consine="
+							+ df.format(qID.getCoSim()) + "\t" + "rank="
+							+ qID.getRank() + "\t" + "qid="
+							+ qID.getQid() + "\t" + "rel=" + qID.getRel()
+							+ "\t" + qID.getText());
+					System.out.println(linePrint);
+					rank.add(qID.getRank());
+					outBW.write(linePrint + "\n");
+				}
+			}
 		}
 		
 		// TODO :: compute the metric:: mean reciprocal rank
+		
 		double metric_mrr = compute_mrr();
 		System.out.println(" (MRR) Mean Reciprocal Rank ::"
 				+ df.format(metric_mrr));
@@ -339,9 +278,9 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 
 	/**
 	 * This method use a global variable that stores all of the rank information
-	 * to calculate the mrr.
+	 * to calculate the MRR.
 	 * 
-	 * @return mrr
+	 * @return mrr The value of MRR
 	 */
 	private double compute_mrr() {
 		double metric_mrr = 0.0;
@@ -353,5 +292,4 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 		metric_mrr = metric_mrr / rank.size();
 		return metric_mrr;
 	}
-
 }
