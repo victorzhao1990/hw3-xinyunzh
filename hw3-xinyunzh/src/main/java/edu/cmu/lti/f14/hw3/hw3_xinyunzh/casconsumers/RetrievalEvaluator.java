@@ -127,7 +127,6 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 
 			qIdList.add(doc.getQueryID());
 			relList.add(doc.getRelevanceValue());
-			// System.out.println(qIdList);
 
 			// Do something useful here
 
@@ -135,9 +134,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 			if (doc.getRelevanceValue() == 99) {
 				// Since we have encounter another group of query, therefore we
 				// add the whole group into the array.
-				// if (wordFreqSentGlob.size() != 0) {
 					wordFreqSentGlob.add(groupQueryDocInfo);
-				// }
 				currQid++;
 				groupQueryDocInfo = new ArrayList<QueryDocInfo>();
 			}
@@ -150,12 +147,6 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 			qDI.setQid(currQid);
 			groupQueryDocInfo.add(qDI);
 		}
-		// System.out.println(groupQueryDocInfo);
-		// wordFreqSentGlob.add(groupQueryDocInfo);
-//		else {
-//			wordFreqSentGlob.add(groupQueryDocInfo);
-//			wordFreqSentGlob.remove(0);
-//		}
 	}
 
 	/**
@@ -175,7 +166,6 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 		// TODO :: compute the cosine similarity measure
 		for (ArrayList<QueryDocInfo> groupSentFreq : wordFreqSentGlob) {
 			Map<String, Integer> queryVector = null;
-			// System.out.println(groupSentFreq);
 			for (QueryDocInfo qDI : groupSentFreq) {
 				HashMap<String, Integer> docVector = null;
 				if (qDI.getRel() == 99) {
@@ -184,7 +174,6 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 					docVector = qDI.getTokenFreq();
 				}
 				if (queryVector != null && docVector != null) {
-					// System.out.println(queryVector + " " + docVector);
 					qDI.setCoSim(computeCosineSimilarity(queryVector, docVector));
 
 				}
@@ -202,18 +191,16 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 			Collections.sort(tempList);
 			for (QueryDocInfo qID : groupSentFreq) {
 				qID.setRank(tempList.indexOf(qID) + 1);
-				// System.out.println(groupSentFreq);
 			}
 		}
 
 		// Make the 4 digit format
 		DecimalFormat df = new DecimalFormat("0.0000");
-		// System.out.println(wordFreqSentGlob);
 		for (int i = 0; i < wordFreqSentGlob.size(); i++) {
 			ArrayList<QueryDocInfo> groupSentFreq = wordFreqSentGlob.get(i);
 			for (QueryDocInfo qID : groupSentFreq) {
 				if (qID.getRel() == 1) {
-					String linePrint = new String("consine="
+					String linePrint = new String("cosine="
 							+ df.format(qID.getCoSim()) + "\t" + "rank="
 							+ qID.getRank() + "\t" + "qid="
 							+ qID.getQid() + "\t" + "rel=" + qID.getRel()

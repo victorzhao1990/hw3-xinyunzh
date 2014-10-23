@@ -142,7 +142,6 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 		}
 		FSList theTokenList = Utils.fromCollectionToFSList(jcas,
 				tokenListUnconv);
-		// System.out.println(theTokenList);
 
 		doc.setTokenList(theTokenList);
 		theTokenList.addToIndexes(jcas);
